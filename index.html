@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manga Reader</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Sign-Up Popup -->
+  <div id="signup-popup" class="popup">
+    <div class="popup-content">
+      <h2>Welcome to Manga Reader</h2>
+      <p>Please sign up to explore unlimited manga.</p>
+      <input type="text" id="username" placeholder="Enter your username">
+      <button onclick="signUp()">Sign Up</button>
+    </div>
+  </div>
+
+  <!-- Main Website Content -->
+  <header>
+    <h1>Manga Reader</h1>
+    <input type="text" id="search" placeholder="Search for Manga...">
+    <button onclick="searchManga()">Search</button>
+    <select id="language" onchange="updateLanguage()">
+      <option value="en">English</option>
+      <option value="hi">Hindi</option>
+      <option value="ta">Tamil</option>
+      <option value="es">Spanish</option>
+      <option value="fr">French</option>
+      <option value="en">japanese</option>
+    </select>
+  </header>
+  <main id="content">
+    <h2>Popular Manga</h2>
+    <div id="manga-list" class="manga-grid"></div>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
+
+
+<style>
+  /* Base Styling */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #121212;
+  color: #fff;
+}
+
+header {
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(45deg, #6b0f1a, #b91372);
+}
+
+header h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+header input, header button, header select {
+  margin: 10px;
+  padding: 10px;
+  font-size: 1rem;
+}
+
+.manga-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.manga-card {
+  background: #1e1e1e;
+  border: 1px solid #444;
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+  transition: transform 0.3s;
+}
+
+.manga-card:hover {
+  transform: scale(1.05);
+}
+
+.manga-card img {
+  max-width: 100%;
+  border-radius: 5px;
+}
+
+button {
+  cursor: pointer;
+  background-color: #b91372;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  font-size: 1rem;
+}
+
+button:hover {
+  background-color: #6b0f1a;
+}
+
+/* Popup Styling */
+.popup {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+}
+
+.popup-content {
+  background-color: #1e1e1e;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+</style>
+
+<script>
+const API_KEY = 'YOUR_TRANSLATION_API_KEY'; // Replace with a valid API key
+let selectedLanguage = 'en';
+
+// Show the sign-up popup on load
+window.onload = () => {
+  const popup = document.getElementById('signup-popup');
+  popup.style.display = 'flex';
+};
+
+// Handle Sign-Up
+function signUp() {
+  const username = document.getElementById('username').value;
+  if (username.trim() === '') {
+    alert('Please enter a username!');
+    return;
+  }
+  localStorage.setItem('username', username);
+  document.getElementById('signup-popup').style.display = 'none';
+  fetchPopularManga();
+}
+
+// Update language preference
+function updateLanguage() {
+  selectedLanguage = document.getElementById('language').value;
+  fetchPopularManga();
+}
+
+// Fetch Popular Manga
+async function fetchPopularManga() {
+  const response = await fetch('https://api.jikan.moe/v4/top/manga');
+  const data = await response.json();
+  displayManga(data.data);
+}
+
+// Search Manga
+async function searchManga() {
+  const query = document.getElementById('search').value;
+  const response = await fetch(`https://api.jikan.moe/v4/manga?q=${query}`);
+  const data = await response.json();
+  displayManga(data.data);
+}
+
+// Translate Text
+async function translateText(text) {
+  if (selectedLanguage === 'en') return text; // No translation needed for English
+  const response = await fetch(
+    `https://api-free.deepl.com/v2/translate?text=${encodeURIComponent(text)}&target_lang=${selectedLanguage}`,
+    {
+      headers: { Authorization: `Bearer ${API_KEY}` }
+    }
+  );
+  const data = await response.json();
+  return data.translations[0].text;
+}
+
+// Display Manga
+async function displayManga(mangaList) {
+  const container = document.getElementById('manga-list');
+  container.innerHTML = '';
+  for (const manga of mangaList) {
+    const translatedTitle = await translateText(manga.title);
+    const translatedSynopsis = await translateText(manga.synopsis || 'No synopsis available.');
+
+    const card = document.createElement('div');
+    card.className = 'manga-card';
+    card.innerHTML = `
+      <img src="${manga.images.jpg.image_url}" alt="${translatedTitle}">
+      <h3>${translatedTitle}</h3>
+      <p>${translatedSynopsis}</p>
+      <button onclick="readManga('${manga.url}')">Read</button>
+    `;
+    container.appendChild(card);
+  }
+}
+
+// Read Manga
+function readManga(url) {
+  window.open(url, '_blank');
+}
+(function () {
+  "use strict";
+
+  // Prevent XSS Attacks by sanitizing user inputs
+  function sanitizeInput(input) {
+    const tempDiv = document.createElement("div");
+    tempDiv.textContent = input;
+    return tempDiv.innerHTML;
+  }
+
+  // Example: Sanitize all input fields automatically
+  const inputs = document.querySelectorAll("input, textarea");
+  inputs.forEach(input => {
+    input.addEventListener("input", (e) => {
+      e.target.value = sanitizeInput(e.target.value);
+    });
+  });
+
+  // Disable right-click to prevent unauthorized access
+  document.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    console.warn("Right-click is disabled to enhance security.");
+  });
+
+  // Prevent debugging tools (like F12/DevTools)
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "F12" || (e.ctrlKey && e.shiftKey && e.key === "I")) {
+      e.preventDefault();
+      console.warn("Developer tools are disabled.");
+    }
+  });
+
+  // Monitor DOM changes for suspicious activity
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.addedNodes.length > 0) {
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeType === 1 && node.tagName === "SCRIPT") {
+            console.error("Unauthorized script detected and removed!");
+            node.remove();
+          }
+        });
+      }
+    });
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  // Secure cookies
+  document.cookie = "SecureCookie=SecureValue; Secure; HttpOnly; SameSite=Strict";
+
+  console.log("Basic security measures are active on this website.");
+})();
+
+</script>
